@@ -1,0 +1,24 @@
+services:
+  app:
+    image: ${E2E_IMAGE:-nodejs-api:local}
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: 8080
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  e2e:
+    image: mcr.microsoft.com/playwright:v1.44.0-jammy
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      BASE_URL: http://app:8080
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: npx playwright test
