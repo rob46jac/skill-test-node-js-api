@@ -108,3 +108,22 @@ jobs:
         env:
           E2E_IMAGE: ${{ needs.build-and-push.outputs.image }}
         run: docker compose -f docker-compose.e2e.yaml up --abort-on-container-exit --exit-code-from e2e
+
+  deploy-development:
+    needs: [build-and-push, e2e-test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/skill-test-cloud-run-gitops
+          token: ${{ secrets.GITOPS_TOKEN }}
+
+      - name: Update development service.yaml
+        run: |
+          IMAGE=${{ needs.build-and-push.outputs.image }}
+          sed -i "s|image:.*|image: $IMAGE|" development/service.yaml
+          git config user.name "ci-bot"
+          git config user.email "ci-bot@users.noreply.github.com"
+          git add development/service.yaml
+          git commit -m "update development to ${GITHUB_SHA::7}"
+          git push
